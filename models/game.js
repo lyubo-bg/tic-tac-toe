@@ -7,11 +7,7 @@ var GameSchema = new Schema({
         default: [],
         required: true
     },
-    next:{
-        type: String,
-        required: true
-    },
-    player:{
+    user: {
         type: String,
         required: true
     }

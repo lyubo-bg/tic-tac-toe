@@ -7,6 +7,8 @@ var jwt = require('jsonwebtoken');
 var router = express.Router();
 var User = require("../models/user");
 var Game = require("../models/game");
+var utils = require("../utils/utilities.js");
+var jwt_decode = require('jwt-decode');
 
 getToken = function (headers) {
     if (headers && headers.authorization) {
@@ -69,37 +71,85 @@ router.post('/startGame', passport.authenticate('jwt', { session: false}), funct
     if (token) {
       var newBoard = ['','','','','','','','',''];
       var symbol = req.body.symbol;
-      var next;
-    
-      if(symbol === 'x' || symbol === 'o'){
-        next = (symbol == 'o') ? 'x' : 'o'; 
-      }
-      else {
+      var position = req.body.position;
+
+      if(symbol !== 'x' && symbol !== 'o'){
         return res.status(400).send({success: false, msg: 'Invalid symbol send.'});
       }
 
-      var position = req.body.position;
-
       if(position < 0 || position > 8){
-        return res.status(400).send({success: false, msg: 'Position send.'});
+        return res.status(400).send({success: false, msg: 'Invalid position send.'});
       }
+
       newBoard[position] = symbol;
+      var parsedJwt = jwt_decode(token);
 
       var game = new Game({
           board: newBoard,
-          next: next,
-          player: next
+          user: parsedJwt.username
       });
 
       game.save(function(err) {
         if (err) {
           return res.json({success: false, msg: 'Something went wrong, can\' create game.'});
         }
-        res.json({success: true, msg: 'Successful new game.', game: game});
+        res.json({success: true, msg: 'Successfully created new game.', data: {game: game}});
       });
     } else {
       return res.status(403).send({success: false, msg: 'Unauthorized.'});
     }
 });
+
+router.post('/move', passport.authenticate('jwt', { session: false}), function(req, res) {
+  var token = getToken(req.headers);
+  if (token) {
+
+    var parsedJwt = jwt_decode(token);
+
+    Game.findOne({
+      user: parsedJwt.username
+    }, function(err, game){
+      if(!game){
+        return res.status(404).send({success: false, msg: 'No game found for user.'});
+      } 
+      else{
+        var playerSymbol = req.body.symbol;
+        var playerMove = req.body.position;
+        
+        utils.validateMove(game, playerSymbol, playerMove, function(code, success, message){
+          return res.status(code).send({success: success, msg: message});
+        });
+        
+        game.board[playerMove] = playerSymbol;
+        var gameStatus = utils.getGameStatus(game, playerSymbol);
+        var botSymbol = (playerSymbol === 'x') ? 'o' : 'x'; 
+        
+        utils.evalBoard(gameStatus, res, function(code, success, message){
+          if(code && success && message) {
+            console.log(code + " " + success + " " + message);
+            return res.status(code).send({success: success, msg: message});
+          }
+          else {
+            var botMove = utils.calculateBotMove(game, botSymbol);
+            game.board[botMove] = botSymbol;
+            var gameStatusAfterBotMove = utils.getGameStatus(game, botSymbol);
+
+            utils.evalBoard(gameStatusAfterBotMove, res, function(code, success, message){
+              if(!code && !success && !message){              
+                return res.status(200).send({success: true, msg: 'Your move.'});
+              } else if(code && success && message) {
+                return res.status(code).send({success: success, msg: message});
+              }
+            });
+          }
+        });
+      }
+    });
+  } else{
+    return res.status(403).send({success: false, msg: 'Unauthorized.'});
+  }
+});
+
+
 
 module.exports = router;
