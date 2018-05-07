@@ -2,32 +2,39 @@ import React, { Component } from 'react';
 import './Game.css';
 
 class Square extends React.Component {
-  
+    constructor(props){
+      super(props);
+    }
+
     render() {
       return (
-        <button className="square" onClick={this.handleClick}>
+        <button className="square" onClick={this.props.handleClick}>
           {this.props.value}
         </button>
       );
-    }
-
-    
+    } 
   }
 
 class Board extends React.Component {
     constructor(props) {
-        super(props);
-        this.state = {
-            boxValue: ''
-        };
+      super(props);
+      this.state = {
+        board: Array(9).fill(''),
+        isX: true
+      };
     }  
 
-    handleClick(){
-      
+    handleClick(i){
+      var newBoard = this.state.board;
+      newBoard = this.state.isX ? 'x' : 'o';
+      this.setState({
+        newBoard,
+        isX: !this.state.isX
+      })
     }
 
     renderSquare(i) {
-      return <Square />;
+      return <Square onClick={() => this.handleClick(i)} value={this.state.board[i]}/>;
     }
   
     render() {
