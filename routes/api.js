@@ -65,39 +65,75 @@ router.post('/signin', function(req, res) {
     });
 });
 
+router.get('/getGame', passport.authenticate('jwt', { session: false}), function(req, res) {
+  var token = getToken(req.headers);
+  if(token){
+    var parsedJwt = jwt_decode(token);
+
+    Game.find({
+      user: parsedJwt.username
+    }, function(err, game){
+      if(!game){
+        return res.status(404).send({success: false, msg: 'No game found for user.'});
+      } 
+      else{
+        return res.status(200).send({success: true, data: { board: game.board}});
+      }
+    });
+
+  }
+  else {
+    return res.status(403).send({success: false, msg: 'Unauthorized.'});
+  }
+});
 
 router.post('/startGame', passport.authenticate('jwt', { session: false}), function(req, res) {
-    var token = getToken(req.headers);
-    if (token) {
-      var newBoard = ['','','','','','','','',''];
-      var symbol = req.body.symbol;
-      var position = req.body.position;
+  var token = getToken(req.headers);
+  if (token) {
+    var newBoard = ['','','','','','','','',''];
+    var symbol = req.body.symbol;
+    var position = req.body.position;
 
-      if(symbol !== 'x' && symbol !== 'o'){
-        return res.status(400).send({success: false, msg: 'Invalid symbol send.'});
-      }
+    if(symbol !== 'x' && symbol !== 'o'){
+      return res.status(400).send({success: false, msg: 'Invalid symbol send.'});
+    }
 
-      if(position < 0 || position > 8){
-        return res.status(400).send({success: false, msg: 'Invalid position send.'});
-      }
+    if(position < 0 || position > 8){
+      return res.status(400).send({success: false, msg: 'Invalid position send.'});
+    }
 
-      newBoard[position] = symbol;
-      var parsedJwt = jwt_decode(token);
+    newBoard[position] = symbol;
+    var parsedJwt = jwt_decode(token);
 
-      var game = new Game({
+    Game.findOne({
+      user: parsedJwt.username
+    }, function(err, game){
+      if(!game){
+        var game = new Game({
           board: newBoard,
           user: parsedJwt.username
-      });
+        });
+  
+        var botSymbol = (symbol === 'x') ? 'o' : 'x'; 
+        
+        var botMove = utils.calculateBotMove(game, botSymbol);
+        game.board[botMove] = botSymbol;
+        game.save(function(err) {
+          if (err) {
+            return res.json({success: false, msg: 'Something went wrong, can\' create game.'});
+          }
+          return res.json({success: true, msg: 'Successfully created new game.', data: {game: game}});
+        });
+      }
+      else {
+        return res.json({success: false, msg: "Can't create game, one already exists"});
+      }
+    });
 
-      game.save(function(err) {
-        if (err) {
-          return res.json({success: false, msg: 'Something went wrong, can\' create game.'});
-        }
-        res.json({success: true, msg: 'Successfully created new game.', data: {game: game}});
-      });
-    } else {
-      return res.status(403).send({success: false, msg: 'Unauthorized.'});
-    }
+    
+  } else {
+    return res.status(403).send({success: false, msg: 'Unauthorized.'});
+  }
 });
 
 router.post('/move', passport.authenticate('jwt', { session: false}), function(req, res) {
@@ -136,7 +172,7 @@ router.post('/move', passport.authenticate('jwt', { session: false}), function(r
 
             utils.evalBoard(gameStatusAfterBotMove, res, function(code, success, message){
               if(!code && !success && !message){              
-                return res.status(200).send({success: true, msg: 'Your move.'});
+                return res.status(200).send({success: true, msg: 'Your move.', data: {board: game.board}});
               } else if(code && success && message) {
                 return res.status(code).send({success: success, msg: message});
               }
