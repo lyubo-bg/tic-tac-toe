@@ -49,8 +49,9 @@ module.exports = {
             return callback();
         }
         else if(gameStatus === enums.GameWon){
-            return callback(200, true, 'You win.');
-        }
+            return callback(200, true, 'You win.')
+        };
+        
     },
 
     validateMove: function(game ,symbol, move, callback){
@@ -65,5 +66,9 @@ module.exports = {
         if(game.board[move] !== ''){
             callback(400, false, 'Invalid position sent, field is not empty.');
         }
+    },
+
+    deleteGame: function(game){
+
     }
 }

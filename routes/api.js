@@ -70,7 +70,7 @@ router.get('/getGame', passport.authenticate('jwt', { session: false}), function
   if(token){
     var parsedJwt = jwt_decode(token);
 
-    Game.find({
+    Game.findOne({
       user: parsedJwt.username
     }, function(err, game){
       if(!game){
@@ -122,7 +122,7 @@ router.post('/startGame', passport.authenticate('jwt', { session: false}), funct
           if (err) {
             return res.json({success: false, msg: 'Something went wrong, can\' create game.'});
           }
-          return res.json({success: true, msg: 'Successfully created new game.', data: {game: game}});
+          return res.json({success: true, msg: 'Successfully created new game.', data: {board: game.board}});
         });
       }
       else {
@@ -159,25 +159,41 @@ router.post('/move', passport.authenticate('jwt', { session: false}), function(r
         game.board[playerMove] = playerSymbol;
         var gameStatus = utils.getGameStatus(game, playerSymbol);
         var botSymbol = (playerSymbol === 'x') ? 'o' : 'x'; 
-        
-        utils.evalBoard(gameStatus, res, function(code, success, message){
-          if(code && success && message) {
-            console.log(code + " " + success + " " + message);
-            return res.status(code).send({success: success, msg: message});
-          }
-          else {
-            var botMove = utils.calculateBotMove(game, botSymbol);
-            game.board[botMove] = botSymbol;
-            var gameStatusAfterBotMove = utils.getGameStatus(game, botSymbol);
 
-            utils.evalBoard(gameStatusAfterBotMove, res, function(code, success, message){
-              if(!code && !success && !message){              
-                return res.status(200).send({success: true, msg: 'Your move.', data: {board: game.board}});
-              } else if(code && success && message) {
-                return res.status(code).send({success: success, msg: message});
-              }
-            });
+        //save game
+        console.log(game.board);
+        Game.update({user: parsedJwt.username},{board: game.board}, function(err) {
+          if (err) {
+            return res.json({success: false, msg: 'Something went wrong, couldn\'t save game.'});
           }
+
+          utils.evalBoard(gameStatus, res, function(code, success, message){
+            if(code && success && message) {
+              Game.find({user: parsedJwt.username}).remove().exec();
+              
+              return res.status(code).send({success: success, msg: message});
+            }
+            else {
+              var botMove = utils.calculateBotMove(game, botSymbol);
+              game.board[botMove] = botSymbol;
+              var gameStatusAfterBotMove = utils.getGameStatus(game, botSymbol);
+              
+              console.log(game.board);
+              Game.update({user: parsedJwt.username},{board: game.board}, function(err) {
+                if (err) {
+                  return res.json({success: false, msg: 'Something went wrong, couldn\'t save game.'});
+                }
+                utils.evalBoard(gameStatusAfterBotMove, res, function(code, success, message){
+                  if(!code && !success && !message){              
+                    return res.status(200).send({success: true, msg: 'Your move.', data: {board: game.board}});
+                  } else if(code && success && message) {
+                    Game.find({user: parsedJwt.username}).remove().exec();
+                    return res.status(code).send({success: success, msg: message});
+                  }
+                });
+              }); 
+            }
+          });
         });
       }
     });
@@ -185,7 +201,5 @@ router.post('/move', passport.authenticate('jwt', { session: false}), function(r
     return res.status(403).send({success: false, msg: 'Unauthorized.'});
   }
 });
-
-
 
 module.exports = router;
