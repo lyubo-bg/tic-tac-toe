@@ -23,7 +23,7 @@ function _get (endpoint, params) {
   function _getWithAuth (endpoint, params, token) {  
     var requestUrl = `${url}${endpoint}`;
     if(params != null) {
-      requestUrl = `${requestUrl}/${params}`;
+      requestUrl = `${requestUrl}`;
     }
   
     return fetch(requestUrl, {

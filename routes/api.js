@@ -167,7 +167,7 @@ router.post('/move', passport.authenticate('jwt', { session: false}), function(r
             return res.json({success: false, msg: 'Something went wrong, couldn\'t save game.'});
           }
 
-          utils.evalBoard(gameStatus, res, function(code, success, message){
+          utils.evalBoard(gameStatus, res, playerSymbol, function(code, success, message){
             if(code && success && message) {
               Game.find({user: parsedJwt.username}).remove().exec();
               
@@ -178,12 +178,11 @@ router.post('/move', passport.authenticate('jwt', { session: false}), function(r
               game.board[botMove] = botSymbol;
               var gameStatusAfterBotMove = utils.getGameStatus(game, botSymbol);
               
-              console.log(game.board);
               Game.update({user: parsedJwt.username},{board: game.board}, function(err) {
                 if (err) {
                   return res.json({success: false, msg: 'Something went wrong, couldn\'t save game.'});
                 }
-                utils.evalBoard(gameStatusAfterBotMove, res, function(code, success, message){
+                utils.evalBoard(gameStatusAfterBotMove, res, botSymbol, function(code, success, message){
                   if(!code && !success && !message){              
                     return res.status(200).send({success: true, msg: 'Your move.', data: {board: game.board}});
                   } else if(code && success && message) {

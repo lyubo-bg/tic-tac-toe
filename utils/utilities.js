@@ -40,7 +40,7 @@ module.exports = {
         }
     },
 
-    evalBoard: function(gameStatus, res, callback){
+    evalBoard: function(gameStatus, res, symbol, callback){
         if(gameStatus === enums.Draw){
             //return res.status(200).send({success: true, msg: 'Game is draw.'});
             return callback(200, true, 'Game is draw.');
@@ -49,7 +49,7 @@ module.exports = {
             return callback();
         }
         else if(gameStatus === enums.GameWon){
-            return callback(200, true, 'You win.')
+            return callback(200, true, (symbol === 'x' ? 'You win.': 'Bot wins'));
         };
         
     },

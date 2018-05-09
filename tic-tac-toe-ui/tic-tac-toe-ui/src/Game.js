@@ -31,8 +31,9 @@ class Board extends React.Component {
       debugger;
       var jwt = this.props.jwt;
       api.getWithAuth('/api/getGame', null, jwt).then(response =>{
-        this.setState({board: response.data.board});
-      }).catch(error => {
+        
+        this.setState({board: response.data.board, isInitial: false});
+      }).catch(error => { 
       
       });
     }
@@ -60,11 +61,9 @@ class Board extends React.Component {
         });
       }
       else {
-        
 
         api.postWithAuth("/api/move", params, this.props.jwt).then(response =>{
-          console.log(response);
-          debugger;
+          this.setState({board: response.board});
         }).catch(error => {
           debugger;
         });
@@ -81,10 +80,14 @@ class Board extends React.Component {
       return <Square onClick={() => this.handleClick(i)} value={this.state.board[i]} disabled={this.state.board[i] !== ''}/>;
     }
 
-    boardIsEmpty(){
+    boardIsEmpty(board){
       for(var i = 0; i < 9; i ++){
-        
+        if(board[i] !== ''){
+          return false;
+        }
       }
+
+      return true;
     }
   
     render() {
