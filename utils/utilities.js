@@ -49,7 +49,7 @@ module.exports = {
             return callback();
         }
         else if(gameStatus === enums.GameWon){
-            return callback(200, true, (symbol === 'x' ? 'You win.': 'Bot wins'));
+            return callback(200, true, (symbol === 'x' ? 'You win.': 'Bot wins.'));
         };
         
     },

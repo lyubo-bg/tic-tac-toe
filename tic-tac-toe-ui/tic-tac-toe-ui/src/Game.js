@@ -50,8 +50,6 @@ class Board extends React.Component {
         position: i
       }
 
-      debugger;
-
       if(this.state.isInitial){
         api.getWithAuth("/api/startGame", params, this.props.jwt).then(response =>{
           console.log(response);

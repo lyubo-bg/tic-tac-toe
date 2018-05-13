@@ -25,7 +25,7 @@ getToken = function (headers) {
 
 router.post('/signup', function(req, res) {
     if (!req.body.username || !req.body.password) {
-      res.json({success: false, msg: 'Please pass username and password.'});
+      res.json({success: false, msg: 'Username and password can\'t be empty.'});
     } else {
       var newUser = new User({
         username: req.body.username,
@@ -48,7 +48,7 @@ router.post('/signin', function(req, res) {
       if (err) throw err;
   
       if (!user) {
-        res.status(401).send({success: false, msg: 'Authentication failed. User not found.'});
+        res.status(401).send({success: false, msg: 'Authentication failed. User or password is wrong.'});
       } else {
         // check if password matches
         user.comparePassword(req.body.password, function (err, isMatch) {
@@ -58,7 +58,7 @@ router.post('/signin', function(req, res) {
             // return the information including token as JSON
             res.json({success: true, token: 'JWT ' + token});
           } else {
-            res.status(401).send({success: false, msg: 'Authentication failed. Wrong password.'});
+            res.status(401).send({success: false, msg: 'Authentication failed. User or password is wrong.'});
           }
         });
       }
